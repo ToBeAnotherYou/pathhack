@@ -6,25 +6,27 @@ on:
 
 jobs:
   build-arm64:
-    runs-on: ubuntu-latest   # x86_64 公共 runner
-    container:
-      image: arm64v8/ubuntu:20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Install deps
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y cmake gcc-aarch64-linux-gnu git
+    runs-on: ubuntu-latest
 
-      - name: Compile pathhack.so
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container
         run: |
-          gcc -shared -fPIC -O2 -o pathhack-arm64.so pathhack.c -ldl
-          file pathhack-arm64.so
+          docker run --rm --platform=linux/arm64 -v $PWD:/src -w /src ubuntu:20.04 \
+          bash -c "apt-get update && apt-get install -y build-essential gcc make && gcc -shared -fPIC -O2 -o pathhack-arm64.so pathhack.c -ldl && file pathhack-arm64.so"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pathhack-arm64
           path: pathhack-arm64.so
+
