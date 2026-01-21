@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-arm64:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-20.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
