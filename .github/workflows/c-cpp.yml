@@ -6,10 +6,7 @@ on:
 
 jobs:
   build-arm64:
-    runs-on: ubuntu-latest
-    container:
-      # 使用官方 ARM64 Ubuntu 20.04 镜像
-      image: arm64v8/ubuntu:20.04
+    runs-on: ubuntu-22.04-arm
 
     steps:
       - uses: actions/checkout@v4
