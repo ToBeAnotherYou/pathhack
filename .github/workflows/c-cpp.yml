@@ -1,0 +1,32 @@
+name: build-pathhack
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build pathhack.so
+        run: |
+          gcc -shared -fPIC -O2 \
+            -o pathhack.so pathhack.c \
+            -ldl
+          file pathhack.so
+          ldd pathhack.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pathhack-so
+          path: pathhack.so
