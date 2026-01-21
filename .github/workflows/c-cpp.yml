@@ -1,18 +1,15 @@
-name: Build pathhack.so
+name: Build pathhack.so (ARM64 native)
 
 on:
   push:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-arm64:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [x86_64, aarch64]  # 两个架构都构建
-
     container:
-      image: ubuntu:20.04
+      # 使用官方 ARM64 Ubuntu 20.04 镜像
+      image: arm64v8/ubuntu:20.04
 
     steps:
       - uses: actions/checkout@v4
@@ -21,31 +18,15 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            build-essential gcc-multilib gcc-aarch64-linux-gnu
-
-      - name: Set compiler based on architecture
-        run: |
-          if [ "${{ matrix.arch }}" == "aarch64" ]; then
-            export CC=aarch64-linux-gnu-gcc
-          else
-            export CC=gcc
-          fi
-          echo "Using compiler $CC"
-        shell: bash
+            build-essential gcc make
 
       - name: Compile pathhack.so
         run: |
-          if [ "${{ matrix.arch }}" == "aarch64" ]; then
-            aarch64-linux-gnu-gcc -shared -fPIC -O2 \
-              -o pathhack-aarch64.so pathhack.c -ldl
-          else
-            gcc -shared -fPIC -O2 -O2 \
-              -o pathhack-x86_64.so pathhack.c -ldl
-          fi
-          file pathhack-*.so
+          gcc -shared -fPIC -O2 -o pathhack-arm64.so pathhack.c -ldl
+          file pathhack-arm64.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pathhack-${{ matrix.arch }}
-          path: pathhack-*.so
+          name: pathhack-arm64
+          path: pathhack-arm64.so
