@@ -6,7 +6,9 @@ on:
 
 jobs:
   build-arm64:
-    runs-on: ubuntu-20.04-arm
+    runs-on: ubuntu-latest   # x86_64 公共 runner
+    container:
+      image: arm64v8/ubuntu:20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
