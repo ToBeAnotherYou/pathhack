@@ -1,53 +1,44 @@
-name: Build x86_64 sysroot for SSLVPNClient
+name: Build x86_64 sysroot
 
 on:
   push:
   workflow_dispatch:
 
 jobs:
-  build-sysroot:
-    runs-on: ubuntu-22.04
+  build-x86-sysroot:
+    runs-on: ubuntu-22.04  # AMD64 runner
 
     steps:
-      # 1️⃣ Checkout 仓库
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2️⃣ 安装必要工具
-      - name: Install build tools
+      - name: Install Docker
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            debootstrap \
-            qemu-user-static \
-            binutils \
-            tar \
-            gzip
+          sudo apt-get update
+          sudo apt-get install -y docker.io
 
-      # 3️⃣ 创建 x86_64 sysroot
-      - name: Build x86_64 sysroot
+      - name: Pull Ubuntu 20.04 x86_64 image
         run: |
-          SYSROOT_DIR="$PWD/sysroot"
-          sudo rm -rf "$SYSROOT_DIR"
-          mkdir -p "$SYSROOT_DIR"
+          docker pull ubuntu:20.04
 
-          # 使用 root 构建 x86_64 Ubuntu 20.04
-          sudo debootstrap --arch=amd64 focal "$SYSROOT_DIR" http://archive.ubuntu.com/ubuntu
+      - name: Export Ubuntu sysroot
+        run: |
+          # 创建临时容器
+          docker create --name temp ubuntu:20.04
+          # 导出容器为 tar
+          docker export temp > ubuntu20.04-x86_64.tar
+          # 删除临时容器
+          docker rm temp
+          # 解压到 sysroot 目录
+          mkdir -p sysroot
+          tar -xf ubuntu20.04-x86_64.tar -C sysroot
 
-          # 修复权限，让 runner 用户可以访问
-          sudo chown -R $USER:$USER "$SYSROOT_DIR"
-          sudo chmod -R u+rwX "$SYSROOT_DIR"
+          # 调整权限，避免上传失败
+          sudo chmod -R a+r sysroot
+          sudo find sysroot -type d -exec chmod a+rx {} \;
 
-          # 可选：只上传必要目录，避免上传 /lib/ssl/private 等敏感目录
-          mkdir -p "$PWD/sysroot_upload"
-          cp -a "$SYSROOT_DIR"/bin "$SYSROOT_DIR"/lib "$SYSROOT_DIR"/usr "$SYSROOT_DIR"/opt "$PWD/sysroot_upload"
-
-          echo "Sysroot prepared and permissions fixed"
-          ls -l "$PWD/sysroot_upload"
-
-      # 4️⃣ 上传 artifact
-      - name: Upload x86_64 sysroot
+      - name: Upload sysroot artifact
         uses: actions/upload-artifact@v4
         with:
           name: x86_64-sysroot
-          path: sysroot_upload
+          path: sysroot
