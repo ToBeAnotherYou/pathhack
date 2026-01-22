@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-sysroot:
-    runs-on: ubuntu-22.04  # x86_64 runner
+    runs-on: ubuntu-22.04
 
     steps:
       # 1️⃣ Checkout 仓库
@@ -30,16 +30,24 @@ jobs:
           SYSROOT_DIR="$PWD/sysroot"
           sudo rm -rf "$SYSROOT_DIR"
           mkdir -p "$SYSROOT_DIR"
-          # debootstrap 构建 x86_64 Ubuntu 20.04
+
+          # 使用 root 构建 x86_64 Ubuntu 20.04
           sudo debootstrap --arch=amd64 focal "$SYSROOT_DIR" http://archive.ubuntu.com/ubuntu
-          # 修复权限
+
+          # 修复权限，让 runner 用户可以访问
           sudo chown -R $USER:$USER "$SYSROOT_DIR"
-          # 查看目录结构
-          ls -l "$SYSROOT_DIR"
+          sudo chmod -R u+rwX "$SYSROOT_DIR"
+
+          # 可选：只上传必要目录，避免上传 /lib/ssl/private 等敏感目录
+          mkdir -p "$PWD/sysroot_upload"
+          cp -a "$SYSROOT_DIR"/bin "$SYSROOT_DIR"/lib "$SYSROOT_DIR"/usr "$SYSROOT_DIR"/opt "$PWD/sysroot_upload"
+
+          echo "Sysroot prepared and permissions fixed"
+          ls -l "$PWD/sysroot_upload"
 
       # 4️⃣ 上传 artifact
       - name: Upload x86_64 sysroot
         uses: actions/upload-artifact@v4
         with:
           name: x86_64-sysroot
-          path: sysroot
+          path: sysroot_upload
