@@ -1,4 +1,4 @@
-name: Build x86_64 sysroot
+name: Build x86_64 sysroot for SSLVPNClient
 
 on:
   push:
@@ -6,31 +6,39 @@ on:
 
 jobs:
   build-sysroot:
-    runs-on: ubuntu-22.04  # 这里是 AMD64 runner
+    runs-on: ubuntu-22.04  # x86_64 runner
 
     steps:
-      - name: Checkout
+      # 1️⃣ Checkout 仓库
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Docker
+      # 2️⃣ 安装必要工具
+      - name: Install build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            debootstrap \
+            qemu-user-static \
+            binutils \
+            tar \
+            gzip
 
-      - name: Pull Ubuntu x86_64
+      # 3️⃣ 创建 x86_64 sysroot
+      - name: Build x86_64 sysroot
         run: |
-          docker pull ubuntu:20.04
+          SYSROOT_DIR="$PWD/sysroot"
+          sudo rm -rf "$SYSROOT_DIR"
+          mkdir -p "$SYSROOT_DIR"
+          # debootstrap 构建 x86_64 Ubuntu 20.04
+          sudo debootstrap --arch=amd64 focal "$SYSROOT_DIR" http://archive.ubuntu.com/ubuntu
+          # 修复权限
+          sudo chown -R $USER:$USER "$SYSROOT_DIR"
+          # 查看目录结构
+          ls -l "$SYSROOT_DIR"
 
-      - name: Export sysroot
-        run: |
-          docker create --name temp ubuntu:20.04
-          docker export temp > ubuntu20.04-x86_64.tar
-          docker rm temp
-          mkdir -p sysroot
-          tar -xf ubuntu20.04-x86_64.tar -C sysroot
-          ls -l sysroot
-
-      - name: Upload artifact
+      # 4️⃣ 上传 artifact
+      - name: Upload x86_64 sysroot
         uses: actions/upload-artifact@v4
         with:
           name: x86_64-sysroot
