@@ -1,0 +1,37 @@
+name: Build x86_64 sysroot
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-sysroot:
+    runs-on: ubuntu-22.04  # 这里是 AMD64 runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+
+      - name: Pull Ubuntu x86_64
+        run: |
+          docker pull ubuntu:20.04
+
+      - name: Export sysroot
+        run: |
+          docker create --name temp ubuntu:20.04
+          docker export temp > ubuntu20.04-x86_64.tar
+          docker rm temp
+          mkdir -p sysroot
+          tar -xf ubuntu20.04-x86_64.tar -C sysroot
+          ls -l sysroot
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: x86_64-sysroot
+          path: sysroot
